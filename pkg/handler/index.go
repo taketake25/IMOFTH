@@ -2,8 +2,8 @@
 package handler
 
 import (
-	"html/template"
 	"net/http"
+	"text/template"
 )
 
 type Page struct {
@@ -11,6 +11,9 @@ type Page struct {
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Del("Content-Type")
+	w.WriteHeader(200)
+
 	page := Page{"Hello"}
 	tmpl, err := template.ParseFiles("../index.html") // ParseFilesを使う
 	if err != nil {

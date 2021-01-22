@@ -5,15 +5,21 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	// "github.com/taketake25/IMOFTH/pkg/handler"
+	"github.com/taketake25/IMOFTH/pkg/handler"
 )
 
 // "database/sql"
 
-func Build() {
+type Page struct {
+	Title string
+}
+
+func Build() *httprouter.Router {
 	router := httprouter.New()
+
 	router.GET("/createImage", handler.createImage)
-	router.NotFound = http.FileServer(http.Dir("public"))
+	router.NotFound = http.HandlerFunc(handler.ApiNotFound)
+	router.MethodNotAllowed = http.HandlerFunc(handler.ApiNotFound)
 
 	return router
 }
