@@ -1,15 +1,16 @@
-package main
+// https://lnly.hatenablog.com/entry/2020/02/26/225722
+package router
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 )
 
+// "github.com/taketake25/IMOFTH/pkg/handler"
 // "database/sql"
 
 type ReplyInfo struct {
@@ -94,10 +95,9 @@ func createImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
-func main() {
+func Build() {
 	router := httprouter.New()
-	router.GET("/createImage", createImage)
+	router.GET("/createImage", handler.createImage)
 
-	log.Fatal(http.ListenAndServe(":8080", router))
-
+	return router
 }

@@ -1,4 +1,4 @@
-# Abstruct
+# Overview
 
 This web application makes a Twitter card image that shows your context or position for some problems. I recommend you attach the image when you tweet some socially serious topics. For instance, if you are trance gender and you want to tweet about gender inequality, the tweet will be more persuasive because others realize you are the parties concerned.
 
