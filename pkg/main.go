@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	_ "github.com/taketake25/IMOFTH/pkg/router"
+	"github.com/taketake25/IMOFTH/pkg/router"
 )
 
 func init() {
