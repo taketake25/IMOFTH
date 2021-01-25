@@ -4,18 +4,21 @@ package handler
 import (
 	"net/http"
 	"text/template"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type Page struct {
 	Title string
 }
 
-func ViewHandler(w http.ResponseWriter, r *http.Request) {
+func ViewHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// func ViewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Del("Content-Type")
 	w.WriteHeader(200)
 
 	page := Page{"Hello"}
-	tmpl, err := template.ParseFiles("../index.html") // ParseFilesを使う
+	tmpl, err := template.ParseFiles("html/index.html") // ParseFilesを使う
 	if err != nil {
 		panic(err)
 	}
