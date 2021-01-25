@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -9,8 +10,10 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -73,6 +76,11 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	isErr, causeText := checkIdAndPasswordFormat(rep.Hashtag)
 
+	card := drawFrame()
+	if card == nil {
+		isErr = true
+	}
+
 	if isErr {
 		reply := ReplyInfo{
 			Hashtag: "#" + causeText,
@@ -85,47 +93,60 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	reply := ReplyInfo{
-		Hashtag: "#Hashtag",
-		Age:     20,
-	}
-	w.Header().Del("Content-Type")
-	w.WriteHeader(200)
+	// reply := ReplyInfo{
+	// 	Hashtag: "#Hashtag",
+	// 	Age:     20,
+	// }
+	// w.Header().Del("Content-Type")
+	// w.WriteHeader(200)
 
-	if err := json.NewEncoder(w).Encode(reply); err != nil {
-		panic(err)
+	// if err := json.NewEncoder(w).Encode(reply); err != nil {
+	// 	panic(err)
+	// }
+
+	var img image.Image = card
+	buffer := new(bytes.Buffer)
+	if err := jpeg.Encode(buffer, img, nil); err != nil {
+		log.Println("unable to encode image.")
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buffer.Bytes())))
+	if _, err := w.Write(buffer.Bytes()); err != nil {
+		log.Println("unable to write image.")
 	}
 }
 
-func drawFrame() {
-	f, err := os.Open("white.png")
-	if err != nil {
-		fmt.Println("open:", err)
-		return
-	}
-	defer f.Close()
+func drawFrame() image.Image {
+	// f, err := os.Open("white.png")
+	// if err != nil {
+	// 	fmt.Println("open:", err)
+	// 	return
+	// }
+	// defer f.Close()
 
-	img, _, err := image.Decode(f)
-	if err != nil {
-		fmt.Println("decode:", err)
-		return
-	}
+	// img, _, err := image.Decode(f)
+	// if err != nil {
+	// 	fmt.Println("decode:", err)
+	// 	return
+	// }
+
+	var img image.Image
 
 	fso, err := os.Create("out.png")
 	if err != nil {
 		fmt.Println("create:", err)
-		return
+		return nil
 	}
 	defer fso.Close()
 
 	m := image.NewRGBA(image.Rect(0, 0, 200, 200)) // 200x200 の画像に test.jpg をのせる
-	c := color.RGBA{50, 200, 255, 255}             // RGBA で色を指定(B が 255 なので青)
+	c := color.RGBA{50, 200, 255, 255}             // RGBA で色を指定(B が 255 なので青?)
 
 	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src) // 青い画像を描画
+	rct := image.Rectangle{image.Point{25, 25}, m.Bounds().Size()}  // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
+	draw.Draw(m, rct, img, image.Point{0, 0}, draw.Src)             // 合成する画像を描画
+	// jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 
-	rct := image.Rectangle{image.Point{25, 25}, m.Bounds().Size()} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
-
-	draw.Draw(m, rct, img, image.Point{0, 0}, draw.Src) // 合成する画像を描画
-
-	jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
+	return m
 }
