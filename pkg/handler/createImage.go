@@ -1,10 +1,16 @@
+// https://shiro-16.hatenablog.com/entry/2020/05/29/130508
 package handler
 
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/jpeg"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -89,4 +95,37 @@ func createImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if err := json.NewEncoder(w).Encode(reply); err != nil {
 		panic(err)
 	}
+}
+
+func drawFrame() {
+	f, err := os.Open("white.png")
+	if err != nil {
+		fmt.Println("open:", err)
+		return
+	}
+	defer f.Close()
+
+	img, _, err := image.Decode(f)
+	if err != nil {
+		fmt.Println("decode:", err)
+		return
+	}
+
+	fso, err := os.Create("out.png")
+	if err != nil {
+		fmt.Println("create:", err)
+		return
+	}
+	defer fso.Close()
+
+	m := image.NewRGBA(image.Rect(0, 0, 200, 200)) // 200x200 の画像に test.jpg をのせる
+	c := color.RGBA{50, 200, 255, 255}             // RGBA で色を指定(B が 255 なので青)
+
+	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src) // 青い画像を描画
+
+	rct := image.Rectangle{image.Point{25, 25}, m.Bounds().Size()} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
+
+	draw.Draw(m, rct, img, image.Point{0, 0}, draw.Src) // 合成する画像を描画
+
+	jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 }
