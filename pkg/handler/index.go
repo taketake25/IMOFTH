@@ -10,7 +10,7 @@ type Page struct {
 	Title string
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request) {
+func ViewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Del("Content-Type")
 	w.WriteHeader(200)
 

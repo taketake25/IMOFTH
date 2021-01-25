@@ -41,7 +41,7 @@ func checkIdAndPasswordFormat(uid string) (isErr bool, causeText string) {
 	return
 }
 
-func createImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var rep ReplyInfo
 
 	if r.Method != "GET" {
