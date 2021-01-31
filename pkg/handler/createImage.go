@@ -4,7 +4,6 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -77,8 +76,8 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	isErr, causeText := checkIdAndPasswordFormat(rep.Hashtag)
 
-	card, err := drawFrame()
-	if err != nil {
+	card, status := drawFrame()
+	if status == false {
 		isErr = true
 	}
 
@@ -118,7 +117,7 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
-func drawFrame() (image.Image, error) {
+func drawFrame() (image.Image, bool) {
 	// f, err := os.Open("white.png")
 	// if err != nil {
 	// 	fmt.Println("open:", err)
@@ -137,7 +136,7 @@ func drawFrame() (image.Image, error) {
 	fso, err := os.Create("out.png")
 	if err != nil {
 		fmt.Println("create:", err)
-		return img, errors.New("something is nil")
+		return img, false
 	}
 	defer fso.Close()
 
@@ -149,5 +148,5 @@ func drawFrame() (image.Image, error) {
 	draw.Draw(m, rct, img, image.Point{0, 0}, draw.Src)             // 合成する画像を描画
 	// jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 
-	return m, nil
+	return m, true
 }
