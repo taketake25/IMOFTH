@@ -1,4 +1,5 @@
 // https://shiro-16.hatenablog.com/entry/2020/05/29/130508
+// curl -H "Hashtag:\"日本語のタグだぜ！\"" -H "Content-type: application/json" -X GET localhost:8080/createImage
 package handler
 
 import (
@@ -25,6 +26,7 @@ type ReplyInfo struct {
 
 func checkIdAndPasswordFormat(uid string) (isErr bool, causeText string) {
 	// requireな内容が足りない
+	log.Printf(uid)
 	if uid == "" {
 		isErr = true
 		causeText = "require user_id and password"
@@ -142,10 +144,12 @@ func drawFrame() (image.Image, bool) {
 
 	m := image.NewRGBA(image.Rect(0, 0, 200, 200)) // 200x200 の画像に test.jpg をのせる
 	c := color.RGBA{50, 200, 255, 255}             // RGBA で色を指定(B が 255 なので青?)
+	c2 := color.RGBA{255, 255, 255, 255}           // RGBA で色を指定(B が 255 なので青?)
 
-	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src) // 青い画像を描画
-	rct := image.Rectangle{image.Point{25, 25}, m.Bounds().Size()}  // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
-	draw.Draw(m, rct, img, image.Point{0, 0}, draw.Src)             // 合成する画像を描画
+	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src)    // 青い画像を描画
+	rct := image.Rectangle{image.Point{25, 25}, m.Bounds().Size()}     // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
+	draw.Draw(m, rct, &image.Uniform{c2}, image.Point{0, 0}, draw.Src) // 合成する画像を描画
+	// gocv.PutText(&atom, timeStr, image.Pt(20, atom.Rows()-40), gocv.FontHersheyComplex, 1, black, 1)
 	// jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 
 	return m, true
