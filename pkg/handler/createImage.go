@@ -1,5 +1,5 @@
 // https://shiro-16.hatenablog.com/entry/2020/05/29/130508
-// curl -H "Hashtag:\"日本語のタグだぜ！\"" -H "Content-type: application/json" -X GET localhost:8080/createImage
+// curl -d '"Hashtag":"aaaa", "Age":"10"' -H "Content-type: application/json" -X GET localhost:8080/createImage
 package handler
 
 import (
