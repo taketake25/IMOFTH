@@ -7,6 +7,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -19,7 +20,10 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/golang/freetype/truetype"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/image/font"
+	"golang.org/x/image/math/fixed"
 )
 
 // "database/sql"
@@ -150,16 +154,60 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func drawFrame() (image.Image, bool) {
 	log.Println("drawFrame")
-	// var errorRet *os.File // エラーを返すときの引数に入れる。
-	// var errorRet image.Image // エラーを返すときの引数に入れる。
 
-	m := image.NewRGBA(image.Rect(0, 0, 1200, 675)) // 16:9 のpng画像を生成
-	c := color.RGBA{50, 200, 255, 255}              // RGBA で色を指定(B が 255 なので青?)
-	c2 := color.RGBA{255, 255, 255, 255}            // RGBA で色を指定(B が 255 なので青?)
+	imageWidth := 1200
+	imageHeight := 675
+
+	m := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight)) // 16:9 のpng画像を生成
+	c := color.RGBA{50, 200, 255, 255}                            // RGBA で色を指定(B が 255 なので青?)
+	c2 := color.RGBA{255, 255, 255, 255}                          // RGBA で色を指定(B が 255 なので青?)
+
+	//************************************************
+	// https://qiita.com/n-noguchi/items/566e83c5cc0d3b80852c
+	// フォントファイルを読み込み
+	ftBinary, err := ioutil.ReadFile("ipaexm.ttf")
+	// ftBinary, err := ioutil.ReadFile("SourceHanSerifJP-Medium.otf")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	ft, err := truetype.Parse(ftBinary)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	opt := truetype.Options{
+		Size:              90,
+		DPI:               0,
+		Hinting:           0,
+		GlyphCacheEntries: 0,
+		SubPixelsX:        0,
+		SubPixelsY:        0,
+	}
+
+	textTopMargin := 90
+	text := "こんにちは"
+
+	face := truetype.NewFace(ft, &opt)
+
+	dr := &font.Drawer{
+		Dst:  m,
+		Src:  image.Black,
+		Face: face,
+		Dot:  fixed.Point26_6{},
+	}
+
+	dr.Dot.X = (fixed.I(imageWidth) - dr.MeasureString(text)) / 2
+	dr.Dot.Y = fixed.I(textTopMargin)
+
+	//************************************************
 
 	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src)               // 青い画像を描画
 	rct := image.Rectangle{image.Point{25, 25}, image.Point{1200 - 25, 675 - 25}} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
 	draw.Draw(m, rct, &image.Uniform{c2}, image.Point{0, 0}, draw.Src)            // 合成する画像を描画
+	dr.DrawString(text)
 	// gocv.PutText(&atom, timeStr, image.Pt(20, atom.Rows()-40), gocv.FontHersheyComplex, 1, black, 1)
 	// jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 
