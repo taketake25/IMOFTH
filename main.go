@@ -1,6 +1,7 @@
 // https://lnly.hatenablog.com/entry/2020/02/26/225722
 // https://shiro-16.hatenablog.com/entry/2020/05/29/130508
 // curl -d "{\"Hashtag\":\"aaaaaaa\", \"Age\":40}" -H "Content-type: application/json" -X POST localhost:8080/createImage
+
 package main
 
 import (
@@ -30,7 +31,24 @@ type ReplyInfo struct {
 }
 
 type Page struct {
-	Title string
+	Title     string
+	CardImage string
+}
+
+var ImageTemplate string = `<!DOCTYPE html>
+<html lang="en"><head></head>
+<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
+
+func sendJsonResponse(w http.ResponseWriter, headerVal int, message string, retVal int) {
+	reply := ReplyInfo{
+		Hashtag: "#" + message,
+		Age:     retVal,
+	}
+	w.Header().Del("Content-Type")
+	w.WriteHeader(headerVal)
+
+	json.NewEncoder(w).Encode(reply)
+	return
 }
 
 func checkHashtagFormat(hashtag string) (isErr bool, causeText string) {
@@ -75,15 +93,9 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	log.Println("rep:", rep)
 
 	// user_idやpasswordが変更されそうだったとき
-	if rep.Hashtag == "" {
-		reply := ReplyInfo{
-			Hashtag: "#nothing",
-			Age:     10,
-		}
-		w.Header().Del("Content-Type")
-		w.WriteHeader(400)
 
-		json.NewEncoder(w).Encode(reply)
+	if rep.Hashtag == "" {
+		sendJsonResponse(w, 400, "#nothing", 0)
 		return
 	}
 	isErr, causeText := checkHashtagFormat(rep.Hashtag)
@@ -94,27 +106,9 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	if isErr {
-		reply := ReplyInfo{
-			Hashtag: "#" + causeText,
-			Age:     rep.Age,
-		}
-		w.Header().Del("Content-Type")
-		w.WriteHeader(400)
-
-		json.NewEncoder(w).Encode(reply)
+		sendJsonResponse(w, 400, "#"+causeText, 0)
 		return
 	}
-
-	// reply := ReplyInfo{
-	// 	Hashtag: "#Hashtag",
-	// 	Age:     20,
-	// }
-	// w.Header().Del("Content-Type")
-	// w.WriteHeader(200)
-
-	// if err := json.NewEncoder(w).Encode(reply); err != nil {
-	// 	panic(err)
-	// }
 
 	fso, err := os.Create("out.png")
 	// fso, err := os.Create("out.jpg")
@@ -124,6 +118,7 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	defer fso.Close()
 
+	// 画像を送信用バッファに代入する
 	buffer := new(bytes.Buffer)
 	if err := png.Encode(buffer, card); err != nil {
 		// if err := jpeg.Encode(fso, m, nil); err != nil {
@@ -135,6 +130,17 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	log.Println(buffer.Bytes())
 
+	// str := base64.StdEncoding.EncodeToString(buffer.Bytes())
+	// if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
+	// 	log.Println("unable to parse image template.")
+	// } else {
+	// 	data := map[string]interface{}{"Image": str}
+	// 	if err = tmpl.Execute(w, data); err != nil {
+	// 		log.Println("unable to execute template.")
+	// 	}
+	// }
+
+	// w.Header().Set("Content-Type", "text")
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buffer.Bytes())))
 	if _, err := w.Write(buffer.Bytes()); err != nil {
@@ -165,7 +171,7 @@ func ViewHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Header().Del("Content-Type")
 	w.WriteHeader(200)
 
-	page := Page{"Hello"}
+	page := Page{"Hello", ""}
 	tmpl, err := template.ParseFiles("html/index.html") // ParseFilesを使う
 	if err != nil {
 		panic(err)
