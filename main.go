@@ -29,9 +29,21 @@ import (
 // "database/sql"
 // https://lnly.hatenablog.com/entry/2020/02/26/225722
 
+type CardInfo struct {
+	Hashtag     string `json:"hashtag,omitempty"`
+	Age         int    `json:"age,omitempty"`
+	Position    string `json:"position,omitempty"`
+	Sex         int    `json:"sex,omitempty"`
+	Work        string `json:"work,omitempty"`
+	Background1 string `json:"background1,omitempty"`
+	Background2 string `json:"background2,omitempty"`
+	Background3 string `json:"background3,omitempty"`
+	TwitterId   string `json:"twitterId,omitempty"`
+}
+
 type ReplyInfo struct {
-	Hashtag string `json:"hashtag,omitempty"`
-	Age     int    `json:"age,omitempty"`
+	Message string `json:"message,omitempty"`
+	Cause   string `json:"cause,omitempty"`
 }
 
 type Page struct {
@@ -43,10 +55,10 @@ var ImageTemplate string = `<!DOCTYPE html>
 <html lang="en"><head></head>
 <body><img src="data:image/jpg;base64,{{.Image}}"></body>`
 
-func sendJsonResponse(w http.ResponseWriter, headerVal int, message string, retVal int) {
+func sendJsonResponse(w http.ResponseWriter, headerVal int, repMessage string, causeMessage string) {
 	reply := ReplyInfo{
-		Hashtag: "#" + message,
-		Age:     retVal,
+		Message: "#" + repMessage,
+		Cause:   causeMessage,
 	}
 	w.Header().Del("Content-Type")
 	w.WriteHeader(headerVal)
@@ -55,15 +67,24 @@ func sendJsonResponse(w http.ResponseWriter, headerVal int, message string, retV
 	return
 }
 
-func checkHashtagFormat(hashtag string) (isErr bool, causeText string) {
+func checkInputFormat(input CardInfo) (isErr bool, causeText string) {
+	// 実装すべき点；
+	// 1.必須情報が入力されているか
+	// 1.5. 正しい型であるか
+	// 2.文字列の長さが長すぎないか
+	// 3.変な記号が含まれていないか
+	// 4.Hashtagが既に存在しているか
+	// 5.詳細すぎる情報がかかれていないか
+	// 6.多重投稿者でないか
+
 	// requireな内容が足りない
-	log.Println(hashtag)
-	if hashtag == "" {
+	log.Println(input.Hashtag)
+	if input.Hashtag == "" {
 		isErr = true
 		causeText = "require hashtag"
 	}
 
-	if len(hashtag) > 15 {
+	if len(input.Hashtag) > 15 {
 		isErr = true
 		causeText = "length of hashtag is not correct"
 	}
@@ -77,9 +98,12 @@ func checkHashtagFormat(hashtag string) (isErr bool, causeText string) {
 	return
 }
 
+func CreateTemplate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+}
+
 func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	log.Println("createImage")
-	var rep ReplyInfo
+	var input CardInfo
 
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -93,24 +117,25 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	defer r.Body.Close()
 
-	err = json.Unmarshal(body, &rep)
-	log.Println("rep:", rep)
+	err = json.Unmarshal(body, &input)
+	log.Println("request:", input)
 
-	// user_idやpasswordが変更されそうだったとき
-
-	if rep.Hashtag == "" {
-		sendJsonResponse(w, 400, "#nothing", 0)
+	// ハッシュタグが空白だった時
+	if input.Hashtag == "" {
+		sendJsonResponse(w, 400, "Please input hashtag name", "value empty")
 		return
 	}
-	isErr, causeText := checkHashtagFormat(rep.Hashtag)
 
-	card, status := drawFrame()
+	// requestの入力情報が正しいフォーマットかをチェック
+	isErr, causeText := checkInputFormat(input)
+
+	card, status := drawFrame(input)
 	if status == false {
 		isErr = true
 	}
 
 	if isErr {
-		sendJsonResponse(w, 400, "#"+causeText, 0)
+		sendJsonResponse(w, 400, "create image error", ""+causeText)
 		return
 	}
 
@@ -152,7 +177,7 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
-func drawFrame() (image.Image, bool) {
+func drawFrame(input CardInfo) (image.Image, bool) {
 	log.Println("drawFrame")
 
 	imageWidth := 1200
@@ -179,7 +204,7 @@ func drawFrame() (image.Image, bool) {
 	}
 
 	opt := truetype.Options{
-		Size:              90,
+		Size:              40,
 		DPI:               0,
 		Hinting:           0,
 		GlyphCacheEntries: 0,
@@ -188,7 +213,15 @@ func drawFrame() (image.Image, bool) {
 	}
 
 	textTopMargin := 90
-	text := "こんにちは"
+	textHashtag := input.Hashtag
+	// textAge := input.Age
+	// textPosition := input.Position
+	// textSex := input.Sex
+	// textWork := input.Work
+	// textTwitterId := input.TwitterId
+	// textBackground1 := input.Background1
+	// textBackground2 := input.Background2
+	// textBackground3 := input.Background3
 
 	face := truetype.NewFace(ft, &opt)
 
@@ -199,15 +232,15 @@ func drawFrame() (image.Image, bool) {
 		Dot:  fixed.Point26_6{},
 	}
 
-	dr.Dot.X = (fixed.I(imageWidth) - dr.MeasureString(text)) / 2
+	// 座標情報を事前に保持してそれをロードしてくる形で実装したい。
+	dr.Dot.X = (fixed.I(imageWidth) - dr.MeasureString(textHashtag)) / 2
 	dr.Dot.Y = fixed.I(textTopMargin)
-
 	//************************************************
 
 	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src)               // 青い画像を描画
 	rct := image.Rectangle{image.Point{25, 25}, image.Point{1200 - 25, 675 - 25}} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
 	draw.Draw(m, rct, &image.Uniform{c2}, image.Point{0, 0}, draw.Src)            // 合成する画像を描画
-	dr.DrawString(text)
+	dr.DrawString(textHashtag)
 	// gocv.PutText(&atom, timeStr, image.Pt(20, atom.Rows()-40), gocv.FontHersheyComplex, 1, black, 1)
 	// jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 
@@ -235,6 +268,7 @@ func Build() *httprouter.Router {
 	router := httprouter.New()
 
 	router.GET("/", ViewHandler)
+	router.POST("/createTemplate", CreateTemplate)
 	router.POST("/createImage", CreateImage)
 
 	router.NotFound = http.FileServer(http.Dir("html/index.html"))
