@@ -193,7 +193,7 @@ func drawFrame(input CardInfo) (image.Image, bool) {
 
 	m := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight)) // 16:9 のpng画像を生成
 	c := color.RGBA{50, 200, 255, 255}                            // RGBA で色を指定(B が 255 なので青?)
-	c2 := color.RGBA{255, 255, 255, 255}                          // RGBA で色を指定(B が 255 なので青?)
+	c2 := color.RGBA{245, 245, 245, 255}                          // RGBA で色を指定(B が 255 なので青?)
 
 	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src)               // 青い画像を描画
 	rct := image.Rectangle{image.Point{25, 25}, image.Point{1200 - 25, 675 - 25}} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
@@ -226,7 +226,7 @@ func drawFrame(input CardInfo) (image.Image, bool) {
 
 	face := truetype.NewFace(ft, &opt)
 
-	dr := &font.Drawer{
+	fdr := &font.Drawer{
 		Dst:  m,
 		Src:  image.Black,
 		Face: face,
@@ -235,23 +235,29 @@ func drawFrame(input CardInfo) (image.Image, bool) {
 
 	textTopMargin := 110
 	text2Margin := textTopMargin + (int(opt.Size)+20)*1
-	text3Margin := textTopMargin + (int(opt.Size)+20)*2
-	text4Margin := textTopMargin + (int(opt.Size)+20)*3
-	text5Margin := textTopMargin + (int(opt.Size)+20)*4
-	text6Margin := textTopMargin + (int(opt.Size)+20)*5
+	text3Margin := textTopMargin + (int(opt.Size)+20)*2 + 20
+	text4Margin := textTopMargin + (int(opt.Size)+20)*3 + 20
+	text5Margin := textTopMargin + (int(opt.Size)+20)*4 + 20
+	text6Margin := textTopMargin + (int(opt.Size)+20)*5 + 20
 	textLeftMargin := 40
 	textRightMargin := 1150
 
 	// 座標情報を事前に保持してそれをロードしてくる形で実装したい。
-	drawTextOnImage(dr, input.Hashtag, textLeftMargin, textTopMargin)
-	drawTextOnImage(dr, strconv.Itoa(input.Age), textRightMargin-dr.MeasureString(strconv.Itoa(input.Age)).Ceil(), textTopMargin)
-	drawTextOnImage(dr, input.Position, textLeftMargin, text2Margin)
-	drawTextOnImage(dr, input.Work, textRightMargin-(dr.MeasureString(strconv.Itoa(input.Sex)).Ceil()+dr.MeasureString(input.Work).Ceil()), text2Margin)
-	drawTextOnImage(dr, strconv.Itoa(input.Sex), textRightMargin-dr.MeasureString(strconv.Itoa(input.Sex)).Ceil(), text2Margin)
-	drawTextOnImage(dr, input.Background1, textLeftMargin, text3Margin)
-	drawTextOnImage(dr, input.Background2, textLeftMargin, text4Margin)
-	drawTextOnImage(dr, input.Background3, textLeftMargin, text5Margin)
-	drawTextOnImage(dr, input.TwitterId, (imageWidth-dr.MeasureString(input.TwitterId).Ceil())/2, text6Margin)
+	drawTextOnImage(fdr, input.Hashtag, textLeftMargin, textTopMargin)
+	drawTextOnImage(fdr, strconv.Itoa(input.Age), textRightMargin-fdr.MeasureString(strconv.Itoa(input.Age)).Ceil(), textTopMargin)
+	drawTextOnImage(fdr, input.Position, textLeftMargin, text2Margin)
+	drawTextOnImage(fdr, input.Work, textRightMargin-(fdr.MeasureString(strconv.Itoa(input.Sex)).Ceil()+fdr.MeasureString(input.Work).Ceil()), text2Margin)
+	drawTextOnImage(fdr, strconv.Itoa(input.Sex), textRightMargin-fdr.MeasureString(strconv.Itoa(input.Sex)).Ceil(), text2Margin)
+
+	opt.Size = 50
+	face = truetype.NewFace(ft, &opt)
+	fdr.Face = face
+	drawTextOnImage(fdr, input.Background1, textLeftMargin, text3Margin)
+	drawTextOnImage(fdr, input.Background2, textLeftMargin, text4Margin)
+	drawTextOnImage(fdr, input.Background3, textLeftMargin, text5Margin)
+
+	fdr.Src = image.Black
+	drawTextOnImage(fdr, input.TwitterId, (imageWidth-fdr.MeasureString(input.TwitterId).Ceil())/2, text6Margin)
 
 	//************************************************
 
