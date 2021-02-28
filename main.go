@@ -157,8 +157,9 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		log.Println("error:png\n", err)
 	}
 
-	log.Println(buffer.Bytes())
+	// log.Println(buffer.Bytes())
 
+	// http形式で送信する場合
 	// str := base64.StdEncoding.EncodeToString(buffer.Bytes())
 	// if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
 	// 	log.Println("unable to parse image template.")
@@ -177,6 +178,13 @@ func CreateImage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
 
+func drawTextOnImage(dr *font.Drawer, drawedText string, x, y int) {
+	// dr.Dot.X = (fixed.I(x) - dr.MeasureString(drawedText)) / 2
+	dr.Dot.X = fixed.I(x)
+	dr.Dot.Y = fixed.I(y)
+	dr.DrawString(drawedText)
+}
+
 func drawFrame(input CardInfo) (image.Image, bool) {
 	log.Println("drawFrame")
 
@@ -186,6 +194,10 @@ func drawFrame(input CardInfo) (image.Image, bool) {
 	m := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight)) // 16:9 のpng画像を生成
 	c := color.RGBA{50, 200, 255, 255}                            // RGBA で色を指定(B が 255 なので青?)
 	c2 := color.RGBA{255, 255, 255, 255}                          // RGBA で色を指定(B が 255 なので青?)
+
+	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src)               // 青い画像を描画
+	rct := image.Rectangle{image.Point{25, 25}, image.Point{1200 - 25, 675 - 25}} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
+	draw.Draw(m, rct, &image.Uniform{c2}, image.Point{0, 0}, draw.Src)            // 合成する画像を描画
 
 	//************************************************
 	// https://qiita.com/n-noguchi/items/566e83c5cc0d3b80852c
@@ -204,24 +216,13 @@ func drawFrame(input CardInfo) (image.Image, bool) {
 	}
 
 	opt := truetype.Options{
-		Size:              40,
+		Size:              80,
 		DPI:               0,
 		Hinting:           0,
 		GlyphCacheEntries: 0,
 		SubPixelsX:        0,
 		SubPixelsY:        0,
 	}
-
-	textTopMargin := 90
-	textHashtag := input.Hashtag
-	// textAge := input.Age
-	// textPosition := input.Position
-	// textSex := input.Sex
-	// textWork := input.Work
-	// textTwitterId := input.TwitterId
-	// textBackground1 := input.Background1
-	// textBackground2 := input.Background2
-	// textBackground3 := input.Background3
 
 	face := truetype.NewFace(ft, &opt)
 
@@ -232,15 +233,28 @@ func drawFrame(input CardInfo) (image.Image, bool) {
 		Dot:  fixed.Point26_6{},
 	}
 
+	textTopMargin := 110
+	text2Margin := textTopMargin + (int(opt.Size)+20)*1
+	text3Margin := textTopMargin + (int(opt.Size)+20)*2
+	text4Margin := textTopMargin + (int(opt.Size)+20)*3
+	text5Margin := textTopMargin + (int(opt.Size)+20)*4
+	text6Margin := textTopMargin + (int(opt.Size)+20)*5
+	textLeftMargin := 40
+	textRightMargin := 1150
+
 	// 座標情報を事前に保持してそれをロードしてくる形で実装したい。
-	dr.Dot.X = (fixed.I(imageWidth) - dr.MeasureString(textHashtag)) / 2
-	dr.Dot.Y = fixed.I(textTopMargin)
+	drawTextOnImage(dr, input.Hashtag, textLeftMargin, textTopMargin)
+	drawTextOnImage(dr, strconv.Itoa(input.Age), textRightMargin-dr.MeasureString(strconv.Itoa(input.Age)).Ceil(), textTopMargin)
+	drawTextOnImage(dr, input.Position, textLeftMargin, text2Margin)
+	drawTextOnImage(dr, input.Work, textRightMargin-(dr.MeasureString(strconv.Itoa(input.Sex)).Ceil()+dr.MeasureString(input.Work).Ceil()), text2Margin)
+	drawTextOnImage(dr, strconv.Itoa(input.Sex), textRightMargin-dr.MeasureString(strconv.Itoa(input.Sex)).Ceil(), text2Margin)
+	drawTextOnImage(dr, input.Background1, textLeftMargin, text3Margin)
+	drawTextOnImage(dr, input.Background2, textLeftMargin, text4Margin)
+	drawTextOnImage(dr, input.Background3, textLeftMargin, text5Margin)
+	drawTextOnImage(dr, input.TwitterId, (imageWidth-dr.MeasureString(input.TwitterId).Ceil())/2, text6Margin)
+
 	//************************************************
 
-	draw.Draw(m, m.Bounds(), &image.Uniform{c}, image.ZP, draw.Src)               // 青い画像を描画
-	rct := image.Rectangle{image.Point{25, 25}, image.Point{1200 - 25, 675 - 25}} // test.jpg をのせる位置を指定する(中央に配置する為に横:25 縦:25 の位置を指定)
-	draw.Draw(m, rct, &image.Uniform{c2}, image.Point{0, 0}, draw.Src)            // 合成する画像を描画
-	dr.DrawString(textHashtag)
 	// gocv.PutText(&atom, timeStr, image.Pt(20, atom.Rows()-40), gocv.FontHersheyComplex, 1, black, 1)
 	// jpeg.Encode(fso, m, &jpeg.Options{Quality: 100})
 
